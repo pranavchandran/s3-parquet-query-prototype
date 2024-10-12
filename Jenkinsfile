@@ -13,27 +13,29 @@ pipeline {
     }
 
 //  stages
-    stage('Initialize') {
-        script {
-            echo "Initializing s3 query with the following parameters:"
-            echo "Bucket: ${params.BUCKET_NAME}"
-            echo "Asset: ${params.ASSET_ID}"
-            echo "Year: ${params.YEAR}"
-            echo "Month: ${params.MONTH}"
-            echo "Date Range: ${params.START_DAY} to ${params.END_DAY}"
-            echo "Tag Name: ${params.TAG_NAME}"
+    stages {
+        stage('Initialize') {
+            script {
+                echo "Initializing s3 query with the following parameters:"
+                echo "Bucket: ${params.BUCKET_NAME}"
+                echo "Asset: ${params.ASSET_ID}"
+                echo "Year: ${params.YEAR}"
+                echo "Month: ${params.MONTH}"
+                echo "Date Range: ${params.START_DAY} to ${params.END_DAY}"
+                echo "Tag Name: ${params.TAG_NAME}"
+            }
         }
-    }
 
-    stage('Run S3 Query') {
-        script {
-            echo "Executing query on S3"
+        stage('Run S3 Query') {
+            script {
+                echo "Executing query on S3"
+            }
         }
-    }
 
-    stage('Archive Results') {
-        script {
-            archiveArtifacts artifacts: 'output_*.csv', allowEmptyArchive: true
+        stage('Archive Results') {
+            script {
+                archiveArtifacts artifacts: 'output_*.csv', allowEmptyArchive: true
+            }
         }
     }
 }
