@@ -15,7 +15,7 @@ pipeline {
 //  stages
     stages {
         stage('Initialize') {
-            script {
+            steps {
                 echo "Initializing s3 query with the following parameters:"
                 echo "Bucket: ${params.BUCKET_NAME}"
                 echo "Asset: ${params.ASSET_ID}"
@@ -27,13 +27,13 @@ pipeline {
         }
 
         stage('Run S3 Query') {
-            script {
+            steps {
                 echo "Executing query on S3"
             }
         }
 
         stage('Archive Results') {
-            script {
+            steps {
                 archiveArtifacts artifacts: 'output_*.csv', allowEmptyArchive: true
             }
         }
