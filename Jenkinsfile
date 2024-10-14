@@ -40,12 +40,12 @@ pipeline {
         stage('Install Dependencies and Upload Script to EC2') {
             steps {
                 script {
-                    // Use AWS SSM to install Python dependencies on the EC2 instance and upload the Python script
-                    sh """
-                        aws ssm send-command \
-                        --document-name "AWS-RunShellScript" \
-                        --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" \
-                        --parameters 'commands=["sudo yum install -y python3-pip", "pip3 install pandas pyarrow boto3", "echo \\"${env.PYTHON_SCRIPT}\\" > /home/ec2-user/script.py", "chmod +x /home/ec2-user/script.py"]' \
+                    // Use PowerShell to install Python dependencies on the EC2 instance and upload the Python script
+                    powershell """
+                        aws ssm send-command `
+                        --document-name "AWS-RunShellScript" `
+                        --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" `
+                        --parameters 'commands=["sudo yum install -y python3-pip", "pip3 install pandas pyarrow boto3", "echo \\"${env.PYTHON_SCRIPT}\\" > /home/ec2-user/script.py", "chmod +x /home/ec2-user/script.py"]' `
                         --region us-east-1
                     """
                 }
@@ -55,12 +55,12 @@ pipeline {
         stage('Run Python Script on EC2') {
             steps {
                 script {
-                    // Execute the Python script on the EC2 instance
-                    sh """
-                        aws ssm send-command \
-                        --document-name "AWS-RunShellScript" \
-                        --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" \
-                        --parameters 'commands=["python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"]' \
+                    // Execute the Python script on the EC2 instance using PowerShell
+                    powershell """
+                        aws ssm send-command `
+                        --document-name "AWS-RunShellScript" `
+                        --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" `
+                        --parameters 'commands=["python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"]' `
                         --region us-east-1
                     """
                 }
