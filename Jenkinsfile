@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'BUCKET_NAME', defaultValue: '', description: 'Name of the S3 bucket')
-        string(name: 'ASSET_ID', defaultValue: '', description: 'ASSET ID to query')
-        string(name: 'YEAR', defaultValue: '', description: 'Year folder in S3')
-        string(name: 'MONTH', defaultValue: '', description: 'Month folder in S3')
-        string(name: 'START_DAY', defaultValue: '', description: 'Start day of the date range')
-        string(name: 'END_DAY', defaultValue: '', description: 'End day of the date range')
-        string(name: 'TAG_NAME', defaultValue: '', description: 'Tag name to filter data')
+        string(name: 'BUCKET_NAME', defaultValue: 'my-parquetfile-bucket', description: 'Name of the S3 bucket')
+        string(name: 'ASSET_ID', defaultValue: 'A001', description: 'ASSET ID to query')
+        string(name: 'YEAR', defaultValue: '2024', description: 'Year folder in S3')
+        string(name: 'MONTH', defaultValue: '10', description: 'Month folder in S3')
+        string(name: 'START_DAY', defaultValue: 'day1', description: 'Start day of the date range')
+        string(name: 'END_DAY', defaultValue: 'day1', description: 'End day of the date range')
+        string(name: 'TAG_NAME', defaultValue: 'Temperature', description: 'Tag name to filter data')
         string(name: 'INSTANCE_ID', defaultValue: 'i-05aa5523aa341d722', description: 'ID of the EC2 instance')
     }
 
