@@ -40,12 +40,12 @@ pipeline {
         stage('Install Dependencies and Upload Script to EC2') {
             steps {
                 script {
-                    // Use SSM to install dependencies and upload the script
-                    sh """
-                        aws ssm send-command \
-                        --document-name "AWS-RunShellScript" \
-                        --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" \
-                        --parameters 'commands=["sudo yum install -y python3-pip", "pip3 install pandas pyarrow boto3", "echo \\"${env.PYTHON_SCRIPT}\\" > /home/ec2-user/script.py", "chmod +x /home/ec2-user/script.py"]' \
+                    // Use PowerShell or bat (batch script) instead of sh
+                    powershell """
+                        aws ssm send-command `
+                        --document-name "AWS-RunPowerShellScript" `
+                        --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" `
+                        --parameters 'commands=["choco install python3", "pip install pandas pyarrow boto3", "echo \\"${env.PYTHON_SCRIPT}\\" > C:/Users/ec2-user/script.py", "chmod +x C:/Users/ec2-user/script.py"]' `
                         --region us-east-1
                     """
                 }
@@ -56,11 +56,11 @@ pipeline {
             steps {
                 script {
                     // Execute the Python script on the EC2 instance
-                    sh """
-                        aws ssm send-command \
-                        --document-name "AWS-RunShellScript" \
-                        --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" \
-                        --parameters 'commands=["python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"]' \
+                    powershell """
+                        aws ssm send-command `
+                        --document-name "AWS-RunPowerShellScript" `
+                        --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" `
+                        --parameters 'commands=["python C:/Users/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"]' `
                         --region us-east-1
                     """
                 }
