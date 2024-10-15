@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        SSH_KEY = credentials('e6662271-9b92-4b6d-a85a-682052c16d94') // SSH key stored in Jenkins credentials
+    }
+
     parameters {
         string(name: 'BUCKET_NAME', defaultValue: 'my-parquetfile-bucket', description: 'Name of the S3 bucket')
         string(name: 'ASSET_ID', defaultValue: 'A001', description: 'ASSET ID to query')
@@ -28,9 +32,12 @@ pipeline {
         stage('Upload Python Script to EC2') {
             steps {
                 script {
-                    // Use SCP to upload the Python script to EC2 using the public IP
+                    // Write the SSH key to a temporary file and use it for SCP
+                    writeFile file: 'private_key.pem', text: "${env.SSH_KEY}"
+                    
+                    // Upload the Python script to the EC2 instance using SCP
                     powershell """
-                        scp script.py ec2-user@100.24.62.93:/home/ec2-user/script.py
+                        scp -i private_key.pem script.py ec2-user@100.24.62.93:/home/ec2-user/script.py
                     """
                 }
             }
@@ -70,6 +77,13 @@ pipeline {
             steps {
                 archiveArtifacts artifacts: 'output_*.csv', allowEmptyArchive: true
             }
+        }
+    }
+
+    post {
+        always {
+            // Clean up the private key file after completion
+            sh 'rm private_key.pem'
         }
     }
 }
