@@ -9,7 +9,6 @@ pipeline {
         string(name: 'START_DAY', defaultValue: 'day1', description: 'Start day of the date range')
         string(name: 'END_DAY', defaultValue: 'day1', description: 'End day of the date range')
         string(name: 'TAG_NAME', defaultValue: 'Temperature', description: 'Tag name to filter data')
-        string(name: 'INSTANCE_ID', defaultValue: 'i-05aa5523aa341d722', description: 'ID of the EC2 instance')
     }
 
     stages {
@@ -22,16 +21,16 @@ pipeline {
                 echo "Month: ${params.MONTH}"
                 echo "Date Range: ${params.START_DAY} to ${params.END_DAY}"
                 echo "Tag Name: ${params.TAG_NAME}"
-                echo "INSTANCE_ID: ${params.INSTANCE_ID}"
+                echo "Using EC2 Public IP: 100.24.62.93"
             }
         }
 
         stage('Upload Python Script to EC2') {
             steps {
                 script {
-                    // Use SCP to upload the Python script to EC2 using Jenkins credentials
+                    // Use SCP to upload the Python script to EC2 using the public IP
                     powershell """
-                        scp script.py ec2-user@${params.INSTANCE_ID}:/home/ec2-user/script.py
+                        scp script.py ec2-user@100.24.62.93:/home/ec2-user/script.py
                     """
                 }
             }
@@ -44,7 +43,7 @@ pipeline {
                     powershell """
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
-                        --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" `
+                        --targets "Key=instanceIds,Values=i-05aa5523aa341d722" `
                         --parameters 'commands=["sudo yum install -y python3-pip", "pip3 install pandas pyarrow boto3"]' `
                         --region us-east-1
                     """
@@ -59,7 +58,7 @@ pipeline {
                     powershell """
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
-                        --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" `
+                        --targets "Key=instanceIds,Values=i-05aa5523aa341d722" `
                         --parameters 'commands=["python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"]' `
                         --region us-east-1
                     """
