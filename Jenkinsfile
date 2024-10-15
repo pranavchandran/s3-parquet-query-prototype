@@ -26,26 +26,26 @@ pipeline {
             }
         }
 
-        stage('Read Python Script') {
+        stage('Upload Python Script to EC2') {
             steps {
                 script {
-                    // Read the python script from the Jenkins workspace after checkout
-                    def scriptContent = readFile('script.py')
-                    // Store the script content as a variable for use in the next stage
-                    env.PYTHON_SCRIPT = scriptContent
+                    // Use SCP to upload the Python script to EC2 using Jenkins credentials
+                    powershell """
+                        scp script.py ec2-user@${params.INSTANCE_ID}:/home/ec2-user/script.py
+                    """
                 }
             }
         }
 
-        stage('Install Dependencies and Upload Script to EC2') {
+        stage('Install Dependencies on EC2') {
             steps {
                 script {
-                    // Use PowerShell to install Python dependencies on the EC2 instance and upload the Python script
+                    // Use AWS SSM to install Python dependencies on the EC2 instance
                     powershell """
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
                         --targets "Key=instanceIds,Values=${params.INSTANCE_ID}" `
-                        --parameters 'commands=["sudo yum install -y python3-pip", "pip3 install pandas pyarrow boto3", "echo \\"${env.PYTHON_SCRIPT}\\" > /home/ec2-user/script.py", "chmod +x /home/ec2-user/script.py"]' `
+                        --parameters 'commands=["sudo yum install -y python3-pip", "pip3 install pandas pyarrow boto3"]' `
                         --region us-east-1
                     """
                 }
@@ -55,7 +55,7 @@ pipeline {
         stage('Run Python Script on EC2') {
             steps {
                 script {
-                    // Execute the Python script on the EC2 instance using PowerShell
+                    // Execute the Python script on the EC2 instance
                     powershell """
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
