@@ -20,13 +20,13 @@ pipeline {
             }
         }
 
-        stage('Install AWS CLI on EC2') {
+        stage('Install AWS CLI and Dependencies on EC2') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
                     script {
-                        echo "Running SSM command to install AWS CLI on EC2"
+                        echo "Running SSM command to install AWS CLI and dependencies on EC2"
                         def installCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli python3-pip && sudo pip3 install boto3"] --region us-east-1
                         """
                         def installResult = powershell(returnStdout: true, script: installCommand).trim()
                         echo "Install Command Result: ${installResult}"
