@@ -10,7 +10,7 @@ pipeline {
         stage('Upload Script to S3') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                 credentialsId: 'your-aws-credentials-id', 
+                                 credentialsId: 'AWS Jenkins credentials', 
                                  accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
                                  secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     script {
