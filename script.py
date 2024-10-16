@@ -17,3 +17,11 @@ start_day = sys.argv[5]
 end_day = sys.argv[6]
 tag_name = sys.argv[7]
 
+print(f"Bucket Name: {bucket_name}")
+print(f"Asset ID: {asset_id}")
+print(f"Year: {year}")
+print(f"Month: {month}")
+print(f"Start Day: {start_day}")
+print(f"End Day: {end_day}")
+print(f"Tag Name: {tag_name}")
+
