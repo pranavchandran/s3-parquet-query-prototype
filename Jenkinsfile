@@ -2,8 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Define SSH key for Jenkins to access EC2 (though not needed for SSM, this is still stored for SSH steps)
-        SSH_KEY = credentials('e6662271-9b92-4b6d-a85a-682052c16d94')
         INSTANCE_ID = 'i-0a7aa679b6c66fb59'  // Update with your EC2 instance ID
     }
 
@@ -31,47 +29,40 @@ pipeline {
             }
         }
 
-        stage('Upload Python Script to EC2 using SSM') {
+        stage('Upload Python Script using SSM') {
             steps {
                 script {
-                    // Using AWS SSM to upload the script to EC2 instance
+                    // Run an SSM command to create the Python script directly on the EC2 instance
                     powershell """
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
                         --instance-ids ${env.INSTANCE_ID} `
-                        --parameters commands=["echo '${env.SSH_KEY}' > /home/ec2-user/private_key.pem", "chmod 400 /home/ec2-user/private_key.pem", "echo 'print(\"Hello, S3!\")' > /home/ec2-user/script.py"] `
+                        --parameters commands=["echo 'print(\\\"Hello, S3!\\\")' > /home/ec2-user/script.py"] `
                         --region us-east-1
                     """
                 }
             }
         }
 
-        stage('Run Python Script on EC2 using SSM') {
+        stage('Run Python Script using SSM') {
             steps {
                 script {
-                    // Use AWS SSM to execute the Python script on the EC2 instance
+                    // Run an SSM command to execute the Python script
                     powershell """
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
                         --instance-ids ${env.INSTANCE_ID} `
-                        --parameters commands=["python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"] `
+                        --parameters commands=["python3 /home/ec2-user/script.py"] `
                         --region us-east-1
                     """
                 }
-            }
-        }
-
-        stage('Archive Results') {
-            steps {
-                archiveArtifacts artifacts: 'output_*.csv', allowEmptyArchive: true
             }
         }
     }
 
     post {
         always {
-            // Clean up if necessary, though SSM takes care of managing command sessions
-            echo 'Finished the Jenkins pipeline.'
+            echo 'Pipeline completed!'
         }
     }
 }
