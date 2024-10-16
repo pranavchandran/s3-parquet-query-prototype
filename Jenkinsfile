@@ -2,21 +2,18 @@ pipeline {
     agent any
 
     environment {
-        BUCKET_NAME = 'my-parquetfile-bucket'
-        INSTANCE_ID = 'i-0a7aa679b6c66fb59'
+        INSTANCE_ID = 'i-0a7aa679b6c66fb59'  // Your EC2 instance ID
+        S3_BUCKET = 'my-parquetfile-bucket'  // Your S3 bucket name
+        SCRIPT_PATH = 'pythonscripts/script.py'  // Path to the script in S3
     }
 
     stages {
         stage('Upload Script to S3') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                 credentialsId: 'AWS Jenkins credentials', 
-                                 accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
-                                 secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
                     script {
-                        // Upload script to S3
                         powershell """
-                            aws s3 cp script.py s3://$BUCKET_NAME/pythonscripts/script.py --region us-east-1
+                            aws s3 cp .\\script.py s3://${S3_BUCKET}/${SCRIPT_PATH}
                         """
                     }
                 }
@@ -25,28 +22,14 @@ pipeline {
 
         stage('Download Script from S3 to EC2') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                 credentialsId: 'AWS Jenkins credentials', 
-                                 accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
-                                 secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
                     script {
-                        // Download the script from S3 to EC2
-                        def downloadCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids $INSTANCE_ID --parameters commands=["aws s3 cp s3://$BUCKET_NAME/pythonscripts/script.py /home/ec2-user/script.py"] --region us-east-1
-                        """
                         echo "Running SSM command to download script from S3 to EC2"
-                        def downloadResult = powershell downloadCommand
-                        echo "Download Command Result: ${downloadResult}"
-
-                        // Extract CommandId for further checking
-                        def commandId = (downloadResult =~ /"CommandId":\s*"(.*?)"/)[0][1]
-                        sleep(time: 20, unit: "SECONDS")
-
-                        // Check command output
-                        def commandOutput = powershell """
-                            aws ssm list-command-invocations --command-id $commandId --details --region us-east-1
+                        def downloadCommand = """
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["aws s3 cp s3://${S3_BUCKET}/${SCRIPT_PATH} /home/ec2-user/script.py"] --region us-east-1
                         """
-                        echo "Download Command Output: ${commandOutput}"
+                        def downloadResult = powershell(returnStdout: true, script: downloadCommand).trim()
+                        echo "Download Command Result: ${downloadResult}"
                     }
                 }
             }
@@ -54,17 +37,13 @@ pipeline {
 
         stage('Execute Script on EC2') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                 credentialsId: 'AWS Jenkins credentials', 
-                                 accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
-                                 secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
                     script {
-                        // Execute the script on EC2
-                        def executeCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids $INSTANCE_ID --parameters commands=["python3 /home/ec2-user/script.py"] --region us-east-1
-                        """
                         echo "Running SSM command to execute Python script on EC2"
-                        def executeResult = powershell executeCommand
+                        def executeCommand = """
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["python3 /home/ec2-user/script.py"] --region us-east-1
+                        """
+                        def executeResult = powershell(returnStdout: true, script: executeCommand).trim()
                         echo "Execution Command Result: ${executeResult}"
                     }
                 }
