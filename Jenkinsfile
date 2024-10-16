@@ -15,7 +15,7 @@ pipeline {
                                  secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     script {
                         powershell """
-                            aws s3 cp script.py s3://$BUCKET_NAME/path/to/script.py --region us-east-1
+                            aws s3 cp script.py s3://$BUCKET_NAME/pythonscripts/script.py --region us-east-1
                         """
                     }
                 }
@@ -34,7 +34,7 @@ pipeline {
                             aws ssm send-command `
                             --document-name "AWS-RunShellScript" `
                             --instance-ids $INSTANCE_ID `
-                            --parameters commands=["aws s3 cp s3://$BUCKET_NAME/path/to/script.py /home/ec2-user/script.py"] `
+                            --parameters commands=["aws s3 cp s3://$BUCKET_NAME/pythonscripts/script.py /home/ec2-user/script.py"] `
                             --region us-east-1
                         """
                         echo "Running SSM command to download script from S3 to EC2"
