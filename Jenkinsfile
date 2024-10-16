@@ -2,26 +2,21 @@ pipeline {
     agent any
 
     environment {
-        INSTANCE_ID = 'i-0a7aa679b6c66fb59'  // Your EC2 instance ID
+        SSH_KEY = credentials('e6662271-9b92-4b6d-a85a-682052c16d94') // Update with your SSH credentials ID
     }
 
     stages {
-        stage('Send SSM Command') {
+        stage('Transfer Python Script to EC2') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                 credentialsId: 'AWS Jenkins credentials', 
-                                 accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
-                                 secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    script {
-                        // Use AWS credentials for SSM command
-                        powershell """
-                            aws ssm send-command `
-                            --document-name "AWS-RunShellScript" `
-                            --instance-ids ${env.INSTANCE_ID} `
-                            --parameters commands=["echo Hello from Jenkins via SSM!"] `
-                            --region us-east-1
-                        """
-                    }
+                script {
+                    // Write the SSH key to a temporary file for SCP
+                    writeFile file: 'private_key.pem', text: "${env.SSH_KEY}"
+
+                    // Use SCP to copy the Python script to the EC2 instance
+                    sh '''
+                    chmod 400 private_key.pem
+                    scp -i private_key.pem -o StrictHostKeyChecking=no script.py ec2-user@52.205.11.86:/home/ec2-user/
+                    '''
                 }
             }
         }
@@ -29,7 +24,8 @@ pipeline {
 
     post {
         always {
-            echo 'SSM Command Test Completed!'
+            // Clean up the private key file after completion
+            sh 'rm private_key.pem'
         }
     }
 }
