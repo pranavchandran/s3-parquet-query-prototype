@@ -26,7 +26,7 @@ pipeline {
                     script {
                         echo "Running SSM command to install AWS CLI and dependencies on EC2"
                         def installCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli python3-pip && sudo pip3 install boto3 python-dateutil"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli python3-pip && python3 -m venv myenv && source myenv/bin/activate && pip install boto3 python-dateutil"] --region us-east-1
                         """
                         def installResult = powershell(returnStdout: true, script: installCommand).trim()
                         echo "Install Command Result: ${installResult}"
@@ -56,7 +56,7 @@ pipeline {
                     script {
                         echo "Running SSM command to verify AWS CLI installation on EC2"
                         def verifyCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["aws --version"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["source myenv/bin/activate && aws --version"] --region us-east-1
                         """
                         def verifyResult = powershell(returnStdout: true, script: verifyCommand).trim()
                         echo "Verify Command Result: ${verifyResult}"
@@ -86,7 +86,7 @@ pipeline {
                     script {
                         echo "Running SSM command to download script from S3 to EC2"
                         def downloadCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["aws s3 cp s3://${S3_BUCKET}/${SCRIPT_PATH} /home/ec2-user/script.py"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["source myenv/bin/activate && aws s3 cp s3://${S3_BUCKET}/${SCRIPT_PATH} /home/ec2-user/script.py"] --region us-east-1
                         """
                         def downloadResult = powershell(returnStdout: true, script: downloadCommand).trim()
                         echo "Download Command Result: ${downloadResult}"
@@ -116,7 +116,7 @@ pipeline {
                     script {
                         echo "Running SSM command to execute Python script on EC2"
                         def executeCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["python3 /home/ec2-user/script.py"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["source myenv/bin/activate && python3 /home/ec2-user/script.py"] --region us-east-1
                         """
                         def executeResult = powershell(returnStdout: true, script: executeCommand).trim()
                         echo "Execution Command Result: ${executeResult}"
