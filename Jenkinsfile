@@ -13,7 +13,7 @@ pipeline {
                     // Export AWS credentials for the session
                     powershell """
                         set AWS_ACCESS_KEY_ID=${AWS_CREDENTIALS_USR}
-                        set AWS_SECRET_ACCESS_KEY=${AWS_CR`EDENTIALS_PSW}
+                        set AWS_SECRET_ACCESS_KEY=${AWS_CREDENTIALS_PSW}
                         
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
