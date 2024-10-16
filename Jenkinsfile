@@ -44,20 +44,20 @@ pipeline {
             }
         }
 
-        stage('Run Python Script using SSM') {
-            steps {
-                script {
-                    // Run an SSM command to execute the Python script
-                    powershell """
-                        aws ssm send-command `
-                        --document-name "AWS-RunShellScript" `
-                        --instance-ids ${env.INSTANCE_ID} `
-                        --parameters commands=["python3 /home/ec2-user/script.py"] `
-                        --region us-east-1
-                    """
-                }
-            }
-        }
+        // stage('Run Python Script using SSM') {
+        //     steps {
+        //         script {
+        //             // Run an SSM command to execute the Python script
+        //             powershell """
+        //                 aws ssm send-command `
+        //                 --document-name "AWS-RunShellScript" `
+        //                 --instance-ids ${env.INSTANCE_ID} `
+        //                 --parameters commands=["python3 /home/ec2-user/script.py"] `
+        //                 --region us-east-1
+        //             """
+        //         }
+        //     }
+        // }
     }
 
     post {
