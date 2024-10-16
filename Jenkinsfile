@@ -2,24 +2,51 @@ pipeline {
     agent any
 
     environment {
-        SSH_KEY = credentials('e6662271-9b92-4b6d-a85a-682052c16d94') // Replace with your actual credentials ID
-        EC2_HOST = "ec2-user@52.205.11.86"  // Your EC2 instance's public DNS or IP
-        FILE_TO_COPY = "script.py" // The file you want to copy
-        REMOTE_PATH = "/home/ec2-user/" // The destination directory on EC2
+        BUCKET_NAME = 'my-parquetfile-bucket'
+        INSTANCE_ID = 'i-0a7aa679b6c66fb59'
     }
 
     stages {
-        stage('Transfer Python Script to EC2') {
+        stage('Upload Script to S3') {
             steps {
-                script {
-                    // Write the private key file for SCP
-                    writeFile file: 'private_key.pem', text: "${SSH_KEY}"
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
+                                 credentialsId: 'your-aws-credentials-id', 
+                                 accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
+                                 secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    script {
+                        sh """
+                            aws s3 cp script.py s3://$BUCKET_NAME/script.py --region us-east-1
+                        """
+                    }
+                }
+            }
+        }
 
-                    // Adjust SCP command for Windows
-                    bat """
-                    chmod 400 private_key.pem
-                    scp -i private_key.pem -o StrictHostKeyChecking=no ${FILE_TO_COPY} ${EC2_HOST}:${REMOTE_PATH}
-                    """
+        stage('Download and Execute Script on EC2') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
+                                 credentialsId: 'your-aws-credentials-id', 
+                                 accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
+                                 secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    script {
+                        // Download the script from S3 to EC2
+                        sh """
+                            aws ssm send-command \
+                            --document-name "AWS-RunShellScript" \
+                            --instance-ids $INSTANCE_ID \
+                            --parameters commands=["aws s3 cp s3://$BUCKET_NAME/script.py /home/ec2-user/script.py"] \
+                            --region us-east-1
+                        """
+
+                        // Execute the Python script on EC2
+                        sh """
+                            aws ssm send-command \
+                            --document-name "AWS-RunShellScript" \
+                            --instance-ids $INSTANCE_ID \
+                            --parameters commands=["python3 /home/ec2-user/script.py"] \
+                            --region us-east-1
+                        """
+                    }
                 }
             }
         }
@@ -27,8 +54,7 @@ pipeline {
 
     post {
         always {
-            // Clean up the private key file after execution
-            bat 'del private_key.pem'
+            echo 'Script execution completed!'
         }
     }
 }
