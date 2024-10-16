@@ -26,18 +26,20 @@ pipeline {
                 echo "Date Range: ${params.START_DAY} to ${params.END_DAY}"
                 echo "Tag Name: ${params.TAG_NAME}"
                 echo "Using EC2 Public IP: 52.205.11.86"
-                echo "Using SSH Key: ${SSH_KEY}"
             }
         }
 
         stage('Upload Python Script to EC2') {
             steps {
                 script {
-                    // Write the SSH key to a temporary file and use it for SCP
+                    // Write the SSH key to a temporary file
                     writeFile file: 'private_key.pem', text: "${env.SSH_KEY}"
                     
+                    // Ensure the permissions on the key file are correct for use in SSH
+                    sh 'chmod 600 private_key.pem'
+                    
                     // Upload the Python script to the EC2 instance using SCP
-                    powershell """
+                    sh """
                         scp -i private_key.pem script.py ec2-user@52.205.11.86:/home/ec2-user/script.py
                     """
                 }
@@ -48,11 +50,11 @@ pipeline {
             steps {
                 script {
                     // Use AWS SSM to install Python dependencies on the EC2 instance
-                    powershell """
-                        aws ssm send-command `
-                        --document-name "AWS-RunShellScript" `
-                        --targets "Key=instanceIds,Values=i-0a7aa679b6c66fb59" `
-                        --parameters 'commands=["sudo yum install -y python3-pip", "pip3 install pandas pyarrow boto3"]' `
+                    sh """
+                        aws ssm send-command \
+                        --document-name "AWS-RunShellScript" \
+                        --targets "Key=instanceIds,Values=i-0a7aa679b6c66fb59" \
+                        --parameters 'commands=["sudo yum install -y python3-pip", "pip3 install pandas pyarrow boto3"]' \
                         --region us-east-1
                     """
                 }
@@ -63,11 +65,11 @@ pipeline {
             steps {
                 script {
                     // Execute the Python script on the EC2 instance
-                    powershell """
-                        aws ssm send-command `
-                        --document-name "AWS-RunShellScript" `
-                        --targets "Key=instanceIds,Values=i-0a7aa679b6c66fb59" `
-                        --parameters 'commands=["python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"]' `
+                    sh """
+                        aws ssm send-command \
+                        --document-name "AWS-RunShellScript" \
+                        --targets "Key=instanceIds,Values=i-0a7aa679b6c66fb59" \
+                        --parameters 'commands=["python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"]' \
                         --region us-east-1
                     """
                 }
