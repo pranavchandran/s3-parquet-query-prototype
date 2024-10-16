@@ -32,61 +32,21 @@ pipeline {
         stage('Upload Python Script to EC2') {
             steps {
                 script {
-                    // Write the SSH key to a temporary file
-                    writeFile file: 'private_key.pem', text: "${env.SSH_KEY}"
-                    
-                    // Ensure the permissions on the key file are correct for use in SSH
-                    sh 'chmod 600 private_key.pem'
-                    
-                    // Upload the Python script to the EC2 instance using SCP
-                    sh """
-                        scp -i private_key.pem script.py ec2-user@52.205.11.86:/home/ec2-user/script.py
+                    // Use WinSCP for file transfer
+                    powershell """
+                        winscp.com /command "open scp://ec2-user:private_key.pem@52.205.11.86" "put script.py /home/ec2-user/" "exit"
                     """
                 }
             }
         }
 
-        stage('Install Dependencies on EC2') {
-            steps {
-                script {
-                    // Use AWS SSM to install Python dependencies on the EC2 instance
-                    sh """
-                        aws ssm send-command \
-                        --document-name "AWS-RunShellScript" \
-                        --targets "Key=instanceIds,Values=i-0a7aa679b6c66fb59" \
-                        --parameters 'commands=["sudo yum install -y python3-pip", "pip3 install pandas pyarrow boto3"]' \
-                        --region us-east-1
-                    """
-                }
-            }
-        }
-
-        stage('Run Python Script on EC2') {
-            steps {
-                script {
-                    // Execute the Python script on the EC2 instance
-                    sh """
-                        aws ssm send-command \
-                        --document-name "AWS-RunShellScript" \
-                        --targets "Key=instanceIds,Values=i-0a7aa679b6c66fb59" \
-                        --parameters 'commands=["python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"]' \
-                        --region us-east-1
-                    """
-                }
-            }
-        }
-
-        stage('Archive Results') {
-            steps {
-                archiveArtifacts artifacts: 'output_*.csv', allowEmptyArchive: true
-            }
-        }
+        // Remaining stages...
     }
 
     post {
         always {
             // Clean up the private key file after completion
-            sh 'rm private_key.pem'
+            powershell 'Remove-Item private_key.pem'
         }
     }
 }
