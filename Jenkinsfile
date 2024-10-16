@@ -1,9 +1,18 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'BUCKET_NAME', defaultValue: 'my-parquetfile-bucket', description: 'S3 Bucket Name')
+        string(name: 'ASSET_ID', defaultValue: 'your_asset_id', description: 'Asset ID')
+        string(name: 'YEAR', defaultValue: '2024', description: 'Year')
+        string(name: 'MONTH', defaultValue: '10', description: 'Month')
+        string(name: 'START_DAY', defaultValue: '1', description: 'Start Day')
+        string(name: 'END_DAY', defaultValue: '5', description: 'End Day')
+        string(name: 'TAG_NAME', defaultValue: 'Temperature', description: 'Tag Name')
+    }
+
     environment {
         INSTANCE_ID = 'i-0a7aa679b6c66fb59'  // Your EC2 instance ID
-        S3_BUCKET = 'my-parquetfile-bucket'  // Your S3 bucket name
         SCRIPT_PATH = 'pythonscripts/script.py'  // Path to the script in S3
     }
 
@@ -13,7 +22,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
                     script {
                         powershell """
-                            aws s3 cp .\\script.py s3://${S3_BUCKET}/${SCRIPT_PATH}
+                            aws s3 cp .\\script.py s3://${params.BUCKET_NAME}/${SCRIPT_PATH}
                         """
                     }
                 }
@@ -26,7 +35,7 @@ pipeline {
                     script {
                         echo "Running SSM command to install AWS CLI and dependencies on EC2"
                         def installCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli python3-pip && python3 -m venv /home/ec2-user/myenv && source /home/ec2-user/myenv/bin/activate && pip install --upgrade awscli boto3 python-dateutil"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli python3-pip && python3 -m venv /home/ec2-user/myenv && source /home/ec2-user/myenv/bin/activate && pip install --upgrade awscli boto3 python-dateutil pandas pyarrow"] --region us-east-1
                         """
                         def installResult = powershell(returnStdout: true, script: installCommand).trim()
                         echo "Install Command Result: ${installResult}"
@@ -86,7 +95,7 @@ pipeline {
                     script {
                         echo "Running SSM command to download script from S3 to EC2"
                         def downloadCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["source /home/ec2-user/myenv/bin/activate && aws s3 cp s3://${S3_BUCKET}/${SCRIPT_PATH} /home/ec2-user/script.py"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["source /home/ec2-user/myenv/bin/activate && aws s3 cp s3://${params.BUCKET_NAME}/${SCRIPT_PATH} /home/ec2-user/script.py"] --region us-east-1
                         """
                         def downloadResult = powershell(returnStdout: true, script: downloadCommand).trim()
                         echo "Download Command Result: ${downloadResult}"
@@ -116,7 +125,7 @@ pipeline {
                     script {
                         echo "Running SSM command to execute Python script on EC2"
                         def executeCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["source /home/ec2-user/myenv/bin/activate && python3 /home/ec2-user/script.py"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["source /home/ec2-user/myenv/bin/activate && python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"] --region us-east-1
                         """
                         def executeResult = powershell(returnStdout: true, script: executeCommand).trim()
                         echo "Execution Command Result: ${executeResult}"
