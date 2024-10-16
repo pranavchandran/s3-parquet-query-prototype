@@ -25,7 +25,8 @@ pipeline {
                 echo "Month: ${params.MONTH}"
                 echo "Date Range: ${params.START_DAY} to ${params.END_DAY}"
                 echo "Tag Name: ${params.TAG_NAME}"
-                echo "Using EC2 Public IP: 100.24.62.93"
+                echo "Using EC2 Public IP: 52.205.11.86"
+                echo "Using SSH Key: ${SSH_KEY}"
             }
         }
 
@@ -37,7 +38,7 @@ pipeline {
                     
                     // Upload the Python script to the EC2 instance using SCP
                     powershell """
-                        scp -i private_key.pem script.py ec2-user@100.24.62.93:/home/ec2-user/script.py
+                        scp -i private_key.pem script.py ec2-user@52.205.11.86:/home/ec2-user/script.py
                     """
                 }
             }
@@ -50,7 +51,7 @@ pipeline {
                     powershell """
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
-                        --targets "Key=instanceIds,Values=i-05aa5523aa341d722" `
+                        --targets "Key=instanceIds,Values=i-0a7aa679b6c66fb59" `
                         --parameters 'commands=["sudo yum install -y python3-pip", "pip3 install pandas pyarrow boto3"]' `
                         --region us-east-1
                     """
@@ -65,7 +66,7 @@ pipeline {
                     powershell """
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
-                        --targets "Key=instanceIds,Values=i-05aa5523aa341d722" `
+                        --targets "Key=instanceIds,Values=i-0a7aa679b6c66fb59" `
                         --parameters 'commands=["python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"]' `
                         --region us-east-1
                     """
