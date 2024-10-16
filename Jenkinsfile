@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        AWS_CREDENTIALS = credentials('AKIAYS2NUES34S77JGCC')  // Replace with the ID of your AWS credentials in Jenkins
+        AWS_CREDENTIALS = credentials('AWS Jenkins credentials')  // Correct credentials ID from Jenkins
         INSTANCE_ID = 'i-0a7aa679b6c66fb59'  // Your EC2 instance ID
     }
 
@@ -12,8 +12,8 @@ pipeline {
                 script {
                     // Export AWS credentials for the session
                     powershell """
-                        set AWS_ACCESS_KEY_ID=${AWS_CREDENTIALS_USR}
-                        set AWS_SECRET_ACCESS_KEY=${AWS_CREDENTIALS_PSW}
+                        $Env:AWS_ACCESS_KEY_ID=${AWS_CREDENTIALS_USR}
+                        $Env:AWS_SECRET_ACCESS_KEY=${AWS_CREDENTIALS_PSW}
                         
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
