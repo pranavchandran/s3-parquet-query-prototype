@@ -26,7 +26,7 @@ pipeline {
                     script {
                         echo "Running SSM command to install AWS CLI and dependencies on EC2"
                         def installCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli python3-pip && python3 -m venv /home/ec2-user/myenv && source /home/ec2-user/myenv/bin/activate && pip install boto3 python-dateutil"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli python3-pip && python3 -m venv /home/ec2-user/myenv && source /home/ec2-user/myenv/bin/activate && pip install --upgrade awscli boto3 python-dateutil"] --region us-east-1
                         """
                         def installResult = powershell(returnStdout: true, script: installCommand).trim()
                         echo "Install Command Result: ${installResult}"
