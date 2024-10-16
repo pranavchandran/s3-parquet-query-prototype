@@ -30,13 +30,15 @@ pipeline {
                                  secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     script {
                         // First SSM command: download the script from S3
-                        // Capture the command ID from the send-command output
                         def downloadCommandResult = powershell """
                             aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids $INSTANCE_ID --parameters commands=["aws s3 cp s3://$BUCKET_NAME/pythonscripts/script.py /home/ec2-user/script.py"] --region us-east-1
                         """
                         
-                        // Assuming downloadCommandResult returns a JSON string; extract the command ID
-                        def commandId = readJSON(text: downloadCommandResult).Command.CommandId  // Adjusted to correctly extract the command ID
+                        // Log the output
+                        echo "Download Command Result: ${downloadCommandResult}"
+
+                        // You may need to manually extract the Command ID using regex
+                        def commandId = (downloadCommandResult =~ /"CommandId": "(.*?)"/)[0][1]
 
                         // Delay to allow the copy to complete
                         sleep(time: 20, unit: "SECONDS")
