@@ -125,7 +125,7 @@ pipeline {
                     script {
                         echo "Running SSM command to execute Python script on EC2"
                         def executeCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["source /home/ec2-user/myenv/bin/activate && python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME}"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["source /home/ec2-user/myenv/bin/activate && python3 /home/ec2-user/script.py ${params.BUCKET_NAME} ${params.ASSET_ID} ${params.YEAR} ${params.MONTH} ${params.START_DAY} ${params.END_DAY} ${params.TAG_NAME} | tee /home/ec2-user/script_output.log"] --region us-east-1
                         """
                         def executeResult = powershell(returnStdout: true, script: executeCommand).trim()
                         echo "Execution Command Result: ${executeResult}"
@@ -141,6 +141,27 @@ pipeline {
                             """
                             def statusResult = powershell(returnStdout: true, script: statusCommand).trim()
                             echo "SSM Command Status: ${statusResult}"
+
+                            // Fetch the script output log
+                            def fetchLogCommand = """
+                                aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["cat /home/ec2-user/script_output.log"] --region us-east-1
+                            """
+                            def fetchLogResult = powershell(returnStdout: true, script: fetchLogCommand).trim()
+                            echo "Fetch Log Command Result: ${fetchLogResult}"
+
+                            def logCommandId = fetchLogResult =~ /"CommandId":\s*"([^"]+)"/
+                            if (logCommandId) {
+                                logCommandId = logCommandId[0][1]
+                                echo "Checking status of SSM command with CommandId: ${logCommandId}"
+                                sleep(time: 30, unit: 'SECONDS')  // Wait for the command to complete
+                                def logStatusCommand = """
+                                    aws ssm list-command-invocations --command-id ${logCommandId} --details --region us-east-1
+                                """
+                                def logStatusResult = powershell(returnStdout: true, script: logStatusCommand).trim()
+                                echo "SSM Command Log Status: ${logStatusResult}"
+                            } else {
+                                error "Failed to retrieve CommandId from fetch log command result"
+                            }
                         } else {
                             error "Failed to retrieve CommandId from execute command result"
                         }
