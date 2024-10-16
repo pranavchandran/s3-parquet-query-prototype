@@ -33,7 +33,7 @@ pipeline {
             steps {
                 script {
                     // Run an SSM command to create the Python script directly on the EC2 instance
-                    def command = 'echo "print(\\"Hello, S3!\\")" > /home/ec2-user/script.py'
+                    def command = 'echo \\"print(\\"Hello, S3!\\")\\" > /home/ec2-user/script.py'
                     powershell """
                         aws ssm send-command `
                         --document-name "AWS-RunShellScript" `
