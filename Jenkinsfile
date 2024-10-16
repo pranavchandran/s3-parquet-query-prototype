@@ -34,11 +34,10 @@ pipeline {
                             aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids $INSTANCE_ID --parameters commands=["aws s3 cp s3://$BUCKET_NAME/pythonscripts/script.py /home/ec2-user/script.py"] --region us-east-1
                         """
                         
-                        // Log the output
                         echo "Download Command Result: ${downloadCommandResult}"
 
-                        // You may need to manually extract the Command ID using regex
-                        def commandId = (downloadCommandResult =~ /"CommandId": "(.*?)"/)[0][1]
+                        // Use regex to extract the CommandId from the output
+                        def commandId = (downloadCommandResult =~ /"CommandId":\s*"(.*?)"/)[0][1]
 
                         // Delay to allow the copy to complete
                         sleep(time: 20, unit: "SECONDS")
