@@ -20,6 +20,36 @@ pipeline {
             }
         }
 
+        stage('Install AWS CLI on EC2') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
+                    script {
+                        echo "Running SSM command to install AWS CLI on EC2"
+                        def installCommand = """
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli"] --region us-east-1
+                        """
+                        def installResult = powershell(returnStdout: true, script: installCommand).trim()
+                        echo "Install Command Result: ${installResult}"
+
+                        // Check the status of the SSM command
+                        def commandId = installResult =~ /"CommandId":\s*"([^"]+)"/
+                        if (commandId) {
+                            commandId = commandId[0][1]
+                            echo "Checking status of SSM command with CommandId: ${commandId}"
+                            sleep(time: 30, unit: 'SECONDS')  // Wait for the command to complete
+                            def statusCommand = """
+                                aws ssm list-command-invocations --command-id ${commandId} --details --region us-east-1
+                            """
+                            def statusResult = powershell(returnStdout: true, script: statusCommand).trim()
+                            echo "SSM Command Status: ${statusResult}"
+                        } else {
+                            error "Failed to retrieve CommandId from install command result"
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Download Script from S3 to EC2') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
