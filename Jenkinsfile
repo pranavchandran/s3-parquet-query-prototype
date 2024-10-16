@@ -30,6 +30,21 @@ pipeline {
                         """
                         def downloadResult = powershell(returnStdout: true, script: downloadCommand).trim()
                         echo "Download Command Result: ${downloadResult}"
+
+                        // Check the status of the SSM command
+                        def commandId = downloadResult =~ /"CommandId":\s*"([^"]+)"/
+                        if (commandId) {
+                            commandId = commandId[0][1]
+                            echo "Checking status of SSM command with CommandId: ${commandId}"
+                            sleep(time: 30, unit: 'SECONDS')  // Wait for the command to complete
+                            def statusCommand = """
+                                aws ssm list-command-invocations --command-id ${commandId} --details --region us-east-1
+                            """
+                            def statusResult = powershell(returnStdout: true, script: statusCommand).trim()
+                            echo "SSM Command Status: ${statusResult}"
+                        } else {
+                            error "Failed to retrieve CommandId from download command result"
+                        }
                     }
                 }
             }
@@ -45,6 +60,21 @@ pipeline {
                         """
                         def executeResult = powershell(returnStdout: true, script: executeCommand).trim()
                         echo "Execution Command Result: ${executeResult}"
+
+                        // Check the status of the SSM command
+                        def commandId = executeResult =~ /"CommandId":\s*"([^"]+)"/
+                        if (commandId) {
+                            commandId = commandId[0][1]
+                            echo "Checking status of SSM command with CommandId: ${commandId}"
+                            sleep(time: 30, unit: 'SECONDS')  // Wait for the command to complete
+                            def statusCommand = """
+                                aws ssm list-command-invocations --command-id ${commandId} --details --region us-east-1
+                            """
+                            def statusResult = powershell(returnStdout: true, script: statusCommand).trim()
+                            echo "SSM Command Status: ${statusResult}"
+                        } else {
+                            error "Failed to retrieve CommandId from execute command result"
+                        }
                     }
                 }
             }
