@@ -26,7 +26,7 @@ pipeline {
                     script {
                         echo "Running SSM command to install AWS CLI and dependencies on EC2"
                         def installCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli python3-pip && sudo pip3 install boto3"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["sudo yum install -y aws-cli python3-pip && sudo pip3 install boto3 python-dateutil"] --region us-east-1
                         """
                         def installResult = powershell(returnStdout: true, script: installCommand).trim()
                         echo "Install Command Result: ${installResult}"
@@ -44,6 +44,36 @@ pipeline {
                             echo "SSM Command Status: ${statusResult}"
                         } else {
                             error "Failed to retrieve CommandId from install command result"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Verify AWS CLI Installation on EC2') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
+                    script {
+                        echo "Running SSM command to verify AWS CLI installation on EC2"
+                        def verifyCommand = """
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["aws --version"] --region us-east-1
+                        """
+                        def verifyResult = powershell(returnStdout: true, script: verifyCommand).trim()
+                        echo "Verify Command Result: ${verifyResult}"
+
+                        // Check the status of the SSM command
+                        def commandId = verifyResult =~ /"CommandId":\s*"([^"]+)"/
+                        if (commandId) {
+                            commandId = commandId[0][1]
+                            echo "Checking status of SSM command with CommandId: ${commandId}"
+                            sleep(time: 30, unit: 'SECONDS')  // Wait for the command to complete
+                            def statusCommand = """
+                                aws ssm list-command-invocations --command-id ${commandId} --details --region us-east-1
+                            """
+                            def statusResult = powershell(returnStdout: true, script: statusCommand).trim()
+                            echo "SSM Command Status: ${statusResult}"
+                        } else {
+                            error "Failed to retrieve CommandId from verify command result"
                         }
                     }
                 }
