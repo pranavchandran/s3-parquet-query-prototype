@@ -34,7 +34,7 @@ def read_and_filter_parquet(bucket_name, key, asset_id, tag_name):
 
         print(f"Dataframe columns: {df.columns}")
         # Filter the data based on asset_id and tag_name
-        filtered_df = df[(df['Asset'] == asset_id) & (df['Tag'] == tag_name)]
+        filtered_df = df[(df['AssetID'] == asset_id) & (df['Tag'] == tag_name)]
         return filtered_df
     except Exception as e:
         print(f"Error processing {key}: {e}")
