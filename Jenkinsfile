@@ -3,11 +3,11 @@ pipeline {
 
     parameters {
         string(name: 'BUCKET_NAME', defaultValue: 'my-parquetfile-bucket', description: 'S3 Bucket Name')
-        string(name: 'ASSET_ID', defaultValue: 'your_asset_id', description: 'Asset ID')
+        string(name: 'ASSET_ID', defaultValue: 'A001', description: 'Asset ID')
         string(name: 'YEAR', defaultValue: '2024', description: 'Year')
-        string(name: 'MONTH', defaultValue: '10', description: 'Month')
+        string(name: 'MONTH', defaultValue: '2', description: 'Month')
         string(name: 'START_DAY', defaultValue: '1', description: 'Start Day')
-        string(name: 'END_DAY', defaultValue: '5', description: 'End Day')
+        string(name: 'END_DAY', defaultValue: '3', description: 'End Day')
         string(name: 'TAG_NAME', defaultValue: 'Temperature', description: 'Tag Name')
     }
 
