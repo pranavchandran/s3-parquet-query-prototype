@@ -182,6 +182,20 @@ pipeline {
                        """
                        def uploadResult = powershell(returnStdout: true, script: uploadCommand).trim()
                        echo "Upload Command Result: ${uploadResult}"
+
+                       def commandId = uploadResult =~ /"CommandId":\s*"([^"]+)"/
+                       if (commandId) {
+                            commandId = commandId[0][1]
+                            echo "Checking status of SSM command with CommandId: ${commandId}"
+                            sleep(time: 30, unit: 'SECONDS')  // Wait for the command to complete
+                            def statusCommand = """
+                                aws ssm list-command-invocations --command-id ${commandId} --details --region us-east-1
+                            """
+                            def statusResult = powershell(returnStdout: true, script: statusCommand).trim()
+                            echo "SSM Command Status: ${statusResult}"
+                       } else {
+                            error "Failed to retrieve CommandId from upload command result"
+                       }
                     }
                 }
             }
