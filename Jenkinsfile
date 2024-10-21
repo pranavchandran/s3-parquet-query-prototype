@@ -201,7 +201,7 @@ pipeline {
         stage ('Save Output as Artifact') {
             steps {
                 echo "Saving output.csv as artifact"
-                archiveArtifacts artifacts: "${LOCAL_OUTPUT_PATH}", allowEmptyArchive: true
+                archiveArtifacts artifacts: "${LOCAL_OUTPUT_PATH}"
             }
         }
     }
