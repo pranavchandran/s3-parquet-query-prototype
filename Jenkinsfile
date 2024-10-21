@@ -14,6 +14,9 @@ pipeline {
     environment {
         INSTANCE_ID = 'i-0a7aa679b6c66fb59'  // Your EC2 instance ID
         SCRIPT_PATH = 'pythonscripts/script.py'  // Path to the script in S3
+        OUTPUT_FILE = '/home/ec2-user/output.csv'  // Path to the CSV file on EC2
+        LOCAL_OUTPUT_PATH = 'output.csv'  // Path to save the output locally in Jenkins
+        S3_OUTPUT_PATH = 's3://my-parquetfile-bucket/output.csv'  // Path in S3 to store the CSV
     }
 
     stages {
@@ -167,6 +170,38 @@ pipeline {
                         }
                     }
                 }
+            }
+        }
+        stage('Upload Output to S3') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
+                    script {
+                       echo "Running SSM command to upload output.csv from EC2 to S3"
+                       def uploadCommand = """
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["aws s3 cp ${OUTPUT_FILE} ${S3_OUTPUT_PATH}"] --region us-east-1
+                       """
+                       def uploadResult = powershell(returnStdout: true, script: uploadCommand).trim()
+                       echo "Upload Command Result: ${uploadResult}"
+                    }
+                }
+            }
+        }
+        stage ('Download Output from s3') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
+                    script {
+                        echo "Downloading output.csv from S3 to Jenkins Workspace"
+                        powershell """
+                        aws s3 cp ${S3_OUTPUT_PATH} ${LOCAL_OUTPUT_PATH}
+                        """
+                    }
+                }
+            }
+        }
+        stage ('Save Output as Artifact') {
+            steps {
+                echo "Saving output.csv as artifact"
+                archiveArtifacts artifacts: "${LOCAL_OUTPUT_PATH}", allowEmptyArchive: true
             }
         }
     }
