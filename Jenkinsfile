@@ -178,7 +178,7 @@ pipeline {
                     script {
                        echo "Running SSM command to upload output.csv from EC2 to S3"
                        def uploadCommand = """
-                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["aws s3 cp ${OUTPUT_FILE} ${S3_OUTPUT_PATH}"] --region us-east-1
+                            aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=[""source /home/ec2-user/myenv/bin/activate && aws s3 cp ${OUTPUT_FILE} ${S3_OUTPUT_PATH}"] --region us-east-1
                        """
                        def uploadResult = powershell(returnStdout: true, script: uploadCommand).trim()
                        echo "Upload Command Result: ${uploadResult}"
