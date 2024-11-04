@@ -218,44 +218,45 @@ pipeline {
                 archiveArtifacts artifacts: "${LOCAL_OUTPUT_PATH}"
             }
         }
-    }
+    
 
-    stage('Delete Output from s3') {
-        steps {
-            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
-                script {
-                    echo "Deleting $S3_OUTPUT_PATH from S3"
-                    powershell """
-                    aws s3 rm ${S3_OUTPUT_PATH}
-                    """
+        stage('Delete Output from s3') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
+                    script {
+                        echo "Deleting $S3_OUTPUT_PATH from S3"
+                        powershell """
+                        aws s3 rm ${S3_OUTPUT_PATH}
+                        """
+                    }
                 }
             }
         }
-    }
-
-    stage('Delete Output from EC2') {
-        steps {
-            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
-                script {
-                    echo "Deleting $OUTPUT_FILE from EC2"
-                    def deleteCommand = """
-                    aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["rm ${OUTPUT_FILE}"] --region us-east-1
-                    """
-                    def deleteResult = powershell(returnStdout:true, scriptdeleteCommand).trim()
-                    echo "Delete Command Result: ${deleteResult}"
-                    // check the status of the SSM Command
-                    def commandId = deleteResult =~ /"CommandId":\s*"([^"]+)"/
-                    if (commandId) {
-                        commandId = commandId[0][1]
-                        echo "Checking status of delete output from ec with CommandId: ${commandID}"
-                        sleep(time:20, unit: 'SECONDS')
-                        def statusCommand = """
-                            aws ssm list-command-invocations --command-id ${commandId} --details --region us-east-1
+    
+        stage('Delete Output from EC2') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS Jenkins credentials']]) {
+                    script {
+                        echo "Deleting $OUTPUT_FILE from EC2"
+                        def deleteCommand = """
+                        aws ssm send-command --document-name "AWS-RunShellScript" --instance-ids ${INSTANCE_ID} --parameters commands=["rm ${OUTPUT_FILE}"] --region us-east-1
                         """
-                        def statusResult = powershell(returnStdout: true, script: statusCommand).trim()
-                        echo "SSM Command Status for EC2 deletion: ${statusResult}"
-                    } else {
-                        error "Failed to retrieve CommandId from delete command result"
+                        def deleteResult = powershell(returnStdout:true, script: deleteCommand).trim()
+                        echo "Delete Command Result: ${deleteResult}"
+                        // check the status of the SSM Command
+                        def commandId = deleteResult =~ /"CommandId":\s*"([^"]+)"/
+                        if (commandId) {
+                            commandId = commandId[0][1]
+                            echo "Checking status of delete output from ec with CommandId: ${commandId}"
+                            sleep(time:20, unit: 'SECONDS')
+                            def statusCommand = """
+                                aws ssm list-command-invocations --command-id ${commandId} --details --region us-east-1
+                            """
+                            def statusResult = powershell(returnStdout: true, script: statusCommand).trim()
+                            echo "SSM Command Status for EC2 deletion: ${statusResult}"
+                        } else {
+                            error "Failed to retrieve CommandId from delete command result"
+                        }
                     }
                 }
             }
